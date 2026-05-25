@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editor de Materialidad de Ropa</title>
+  <style>
+    :root{
+      --bg:#111827;
+      --panel:#1f2937;
+      --panel2:#0f172a;
+      --text:#f9fafb;
+      --muted:#cbd5e1;
+      --accent:#38bdf8;
+      --border:#334155;
+      --danger:#fb7185;
+      --ok:#34d399;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:linear-gradient(135deg,#0f172a,#111827 45%,#1e293b);
+      color:var(--text);
+      min-height:100vh;
+    }
+    header{
+      padding:22px 24px 10px;
+      border-bottom:1px solid rgba(148,163,184,.18);
+      background:rgba(15,23,42,.72);
+      backdrop-filter: blur(8px);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    header h1{
+      margin:0 0 6px;
+      font-size:clamp(1.3rem,2vw,2rem);
+      letter-spacing:.2px;
+    }
+    header p{
+      margin:0;
+      color:var(--muted);
+      font-size:.95rem;
+      max-width:1050px;
+      line-height:1.45;
+    }
+    main{
+      padding:18px 24px 28px;
+      display:grid;
+      grid-template-columns: 330px 1fr;
+      gap:18px;
+    }
+    .panel{
+      background:rgba(31,41,55,.82);
+      border:1px solid rgba(148,163,184,.22);
+      border-radius:18px;
+      box-shadow:0 18px 40px rgba(0,0,0,.25);
+    }
+    .controls{
+      padding:16px;
+      height:max-content;
+      position:sticky;
+      top:106px;
+    }
+    .controls h2{
+      font-size:1rem;
+      margin:4px 0 12px;
+      color:#e2e8f0;
+    }
+    .group{
+      padding:12px;
+      margin-bottom:12px;
+      background:rgba(15,23,42,.55);
+      border:1px solid rgba(148,163,184,.16);
+      border-radius:14px;
+    }
+    label{
+      display:block;
+      font-size:.86rem;
+      color:#e2e8f0;
+      margin:0 0 7px;
+    }
+    input[type="file"], select, button, input[type="range"], input[type="color"]{
+      width:100%;
+    }
+    input[type="file"], select{
+      color:var(--text);
+      background:#0f172a;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:9px;
+      outline:none;
+    }
+    input[type="range"]{ accent-color: var(--accent); }
+    input[type="color"]{
+      height:42px;
+      border:1px solid var(--border);
+      background:#0f172a;
+      border-radius:10px;
+      padding:3px;
+    }
+    .row{
+      display:grid;
+      grid-template-columns:1fr 74px;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .value{
+      text-align:center;
+      color:#e5e7eb;
+      font-variant-numeric:tabular-nums;
+      padding:6px 8px;
+      background:#111827;
+      border:1px solid var(--border);
+      border-radius:10px;
+      font-size:.85rem;
+    }
+    .btns{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    button{
+      border:0;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:700;
+      cursor:pointer;
+      background:#334155;
+      color:var(--text);
+      transition:.15s transform, .15s filter, .15s background;
+    }
+    button:hover{ transform:translateY(-1px); filter:brightness(1.08); }
+    button.primary{ background:linear-gradient(135deg,#0284c7,#22d3ee); color:#06131f; }
+    button.ok{ background:linear-gradient(135deg,#059669,#34d399); color:#04130e; }
+    button.danger{ background:linear-gradient(135deg,#be123c,#fb7185); color:#fff; }
+    button.ghost{ background:#0f172a; border:1px solid var(--border); }
+    button:disabled{ opacity:.48; cursor:not-allowed; transform:none; }
+    .workspace{
+      min-width:0;
+      padding:14px;
+    }
+    .canvases{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .canvasBox{
+      min-width:0;
+      background:rgba(15,23,42,.76);
+      border:1px solid rgba(148,163,184,.2);
+      border-radius:16px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .canvasTitle{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(148,163,184,.14);
+      color:#e2e8f0;
+      font-weight:700;
+      font-size:.92rem;
+    }
+    .canvasTitle span:last-child{
+      color:#93c5fd;
+      font-weight:600;
+      font-size:.78rem;
+    }
+    .canvasWrap{
+      position:relative;
+      width:100%;
+      height:min(68vh,720px);
+      min-height:410px;
+      display:grid;
+      place-items:center;
+      overflow:auto;
+      background:
+        linear-gradient(45deg,rgba(148,163,184,.08) 25%,transparent 25%),
+        linear-gradient(-45deg,rgba(148,163,184,.08) 25%,transparent 25%),
+        linear-gradient(45deg,transparent 75%,rgba(148,163,184,.08) 75%),
+        linear-gradient(-45deg,transparent 75%,rgba(148,163,184,.08) 75%);
+      background-size:24px 24px;
+      background-position:0 0,0 12px,12px -12px,-12px 0;
+    }
+    canvas{
+      max-width:100%;
+      max-height:none;
+      border-radius:10px;
+      image-rendering:auto;
+    }
+    #editCanvas{
+      cursor:crosshair;
+      box-shadow:0 8px 30px rgba(0,0,0,.28);
+    }
+    #resultCanvas{
+      box-shadow:0 8px 30px rgba(0,0,0,.28);
+    }
+    .hint{
+      color:#cbd5e1;
+      font-size:.83rem;
+      line-height:1.43;
+      margin:8px 0 0;
+    }
+    .small{
+      color:#94a3b8;
+      font-size:.78rem;
+      margin-top:8px;
+      line-height:1.38;
+    }
+    .modebar{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .toggle{
+      border:1px solid var(--border);
+      background:#111827;
+    }
+    .toggle.active{
+      outline:2px solid rgba(56,189,248,.55);
+      background:#083344;
+    }
+    .swatches{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+      margin-top:8px;
+    }
+    .swatch{
+      height:32px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.25);
+      cursor:pointer;
+    }
+    .status{
+      margin-top:10px;
+      padding:10px;
+      border-radius:12px;
+      background:rgba(2,132,199,.13);
+      color:#bae6fd;
+      font-size:.83rem;
+      line-height:1.4;
+      border:1px solid rgba(56,189,248,.2);
+    }
+    .footerNote{
+      margin-top:14px;
+      color:#94a3b8;
+      font-size:.78rem;
+      text-align:center;
+    }
+    @media (max-width:1000px){
+      main{grid-template-columns:1fr}
+      .controls{position:relative; top:auto}
+      .canvases{grid-template-columns:1fr}
+      .canvasWrap{height:55vh}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Editor de materialidad para ropa en imágenes</h1>
+  <p>Carga una imagen, pinta la zona de ropa en la ventana izquierda, elige una materialidad y revisa el resultado en la ventana derecha. Todo funciona localmente en tu navegador.</p>
+</header>
+
+<main>
+  <aside class="panel controls">
+    <h2>Controles</h2>
+
+    <div class="group">
+      <label for="imageLoader">1. Cargar imagen</label>
+      <input id="imageLoader" type="file" accept="image/*" />
+      <p class="hint">La imagen no se sube a internet. Se procesa en el navegador.</p>
+    </div>
+
+    <div class="group">
+      <label>2. Seleccionar zona de ropa</label>
+      <div class="modebar">
+        <button id="paintMode" class="toggle active" type="button">Pintar zona</button>
+        <button id="eraseMode" class="toggle" type="button">Borrar zona</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label for="brushSize">Tamaño del pincel</label>
+          <input id="brushSize" type="range" min="4" max="120" value="34" />
+        </div>
+        <div class="value" id="brushValue">34 px</div>
+      </div>
+      <div class="btns">
+        <button id="clearMask" class="ghost" type="button">Limpiar selección</button>
+        <button id="selectAll" class="ghost" type="button">Seleccionar todo</button>
+      </div>
+      <p class="small">Consejo: usa “Pintar zona” sobre la ropa. La selección aparece en azul translúcido.</p>
+    </div>
+
+    <div class="group">
+      <label for="material">3. Materialidad</label>
+      <select id="material">
+        <option value="wood">Madera</option>
+        <option value="plastic">Plástico</option>
+        <option value="mesh">Malla / red</option>
+        <option value="paper">Papel</option>
+        <option value="metal">Metal satinado</option>
+        <option value="leather">Cuero</option>
+        <option value="fabric">Tela gruesa</option>
+      </select>
+
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label for="baseColor">Color base</label>
+          <input id="baseColor" type="color" value="#9b6a3a" />
+        </div>
+        <div class="value" id="colorText">#9b6a3a</div>
+      </div>
+
+      <div class="swatches">
+        <div class="swatch" data-color="#9b6a3a" style="background:#9b6a3a" title="Madera"></div>
+        <div class="swatch" data-color="#101827" style="background:#101827" title="Negro plástico"></div>
+        <div class="swatch" data-color="#d8d2c4" style="background:#d8d2c4" title="Papel"></div>
+        <div class="swatch" data-color="#b8c1cc" style="background:#b8c1cc" title="Metal"></div>
+        <div class="swatch" data-color="#4b2f24" style="background:#4b2f24" title="Cuero"></div>
+        <div class="swatch" data-color="#2563eb" style="background:#2563eb" title="Azul"></div>
+        <div class="swatch" data-color="#dc2626" style="background:#dc2626" title="Rojo"></div>
+        <div class="swatch" data-color="#f8fafc" style="background:#f8fafc" title="Blanco"></div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div>
+          <label for="intensity">Intensidad del material</label>
+          <input id="intensity" type="range" min="0" max="100" value="78" />
+        </div>
+        <div class="value" id="intensityValue">78%</div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="textureScale">Escala de textura</label>
+          <input id="textureScale" type="range" min="8" max="110" value="42" />
+        </div>
+        <div class="value" id="scaleValue">42</div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="shadowKeep">Conservar sombras de la foto</label>
+          <input id="shadowKeep" type="range" min="0" max="100" value="65" />
+        </div>
+        <div class="value" id="shadowValue">65%</div>
+      </div>
+
+      <button id="applyBtn" class="primary" type="button">Aplicar materialidad</button>
+    </div>
+
+    <div class="group">
+      <label>4. Descargar</label>
+      <button id="downloadBtn" class="ok" type="button" disabled>Descargar PNG</button>
+      <div class="btns" style="margin-top:8px">
+        <button id="resetBtn" class="danger" type="button">Reiniciar</button>
+        <button id="copyResult" class="ghost" type="button">Copiar a selección</button>
+      </div>
+      <p class="small">“Copiar a selección” permite seguir editando encima del último resultado.</p>
+    </div>
+
+    <div class="status" id="status">Carga una imagen para comenzar.</div>
+    <div class="footerNote">Versión local HTML + Canvas.</div>
+  </aside>
+
+  <section class="panel workspace">
+    <div class="canvases">
+      <div class="canvasBox">
+        <div class="canvasTitle">
+          <span>Imagen original / zona a pintar</span>
+          <span id="leftInfo">sin imagen</span>
+        </div>
+        <div class="canvasWrap">
+          <canvas id="editCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="canvasBox">
+        <div class="canvasTitle">
+          <span>Resultado</span>
+          <span id="rightInfo">pendiente</span>
+        </div>
+        <div class="canvasWrap">
+          <canvas id="resultCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const imageLoader = document.getElementById("imageLoader");
+  const editCanvas = document.getElementById("editCanvas");
+  const resultCanvas = document.getElementById("resultCanvas");
+  const ectx = editCanvas.getContext("2d", { willReadFrequently:true });
+  const rctx = resultCanvas.getContext("2d", { willReadFrequently:true });
+
+  const brushSize = document.getElementById("brushSize");
+  const brushValue = document.getElementById("brushValue");
+  const material = document.getElementById("material");
+  const baseColor = document.getElementById("baseColor");
+  const colorText = document.getElementById("colorText");
+  const intensity = document.getElementById("intensity");
+  const intensityValue = document.getElementById("intensityValue");
+  const textureScale = document.getElementById("textureScale");
+  const scaleValue = document.getElementById("scaleValue");
+  const shadowKeep = document.getElementById("shadowKeep");
+  const shadowValue = document.getElementById("shadowValue");
+  const applyBtn = document.getElementById("applyBtn");
+  const clearMask = document.getElementById("clearMask");
+  const selectAll = document.getElementById("selectAll");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const copyResult = document.getElementById("copyResult");
+  const paintMode = document.getElementById("paintMode");
+  const eraseMode = document.getElementById("eraseMode");
+  const status = document.getElementById("status");
+  const leftInfo = document.getElementById("leftInfo");
+  const rightInfo = document.getElementById("rightInfo");
+
+  let image = new Image();
+  let originalImageData = null;
+  let currentBaseImageData = null;
+  let maskCanvas = document.createElement("canvas");
+  let maskCtx = maskCanvas.getContext("2d", { willReadFrequently:true });
+  let previewMaskCanvas = document.createElement("canvas");
+  let previewMaskCtx = previewMaskCanvas.getContext("2d");
+  let isDrawing = false;
+  let mode = "paint";
+  let hasImage = false;
+  let lastPoint = null;
+  let maxSide = 1600;
+
+  function setStatus(text){ status.textContent = text; }
+
+  function hexToRgb(hex){
+    const clean = hex.replace("#","");
+    const num = parseInt(clean,16);
+    return {r:(num>>16)&255, g:(num>>8)&255, b:num&255};
+  }
+
+  function clamp(v,min=0,max=255){ return Math.max(min, Math.min(max, v)); }
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function luminance(r,g,b){ return (0.2126*r + 0.7152*g + 0.0722*b) / 255; }
+
+  function noise(x,y,seed=0){
+    const n = Math.sin(x*12.9898 + y*78.233 + seed*37.719) * 43758.5453;
+    return n - Math.floor(n);
+  }
+
+  function smoothNoise(x,y,seed=0){
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = x - xi, yf = y - yi;
+    const n00 = noise(xi, yi, seed);
+    const n10 = noise(xi+1, yi, seed);
+    const n01 = noise(xi, yi+1, seed);
+    const n11 = noise(xi+1, yi+1, seed);
+    const u = xf*xf*(3-2*xf);
+    const v = yf*yf*(3-2*yf);
+    return lerp(lerp(n00,n10,u), lerp(n01,n11,u), v);
+  }
+
+  function setCanvasSize(w,h){
+    editCanvas.width = w; editCanvas.height = h;
+    resultCanvas.width = w; resultCanvas.height = h;
+    maskCanvas.width = w; maskCanvas.height = h;
+    previewMaskCanvas.width = w; previewMaskCanvas.height = h;
+  }
+
+  function drawEditView(){
+    if(!hasImage) {
+      ectx.clearRect(0,0,editCanvas.width,editCanvas.height);
+      return;
+    }
+    ectx.putImageData(currentBaseImageData, 0, 0);
+
+    // Blue overlay for selected mask
+    const w = editCanvas.width, h = editCanvas.height;
+    previewMaskCtx.clearRect(0,0,w,h);
+    previewMaskCtx.drawImage(maskCanvas, 0, 0);
+    const img = previewMaskCtx.getImageData(0,0,w,h);
+    const data = img.data;
+    for(let i=0;i<data.length;i+=4){
+      const a = data[i+3];
+      if(a > 0){
+        data[i] = 56;
+        data[i+1] = 189;
+        data[i+2] = 248;
+        data[i+3] = Math.min(115, a * 0.45);
+      }
+    }
+    previewMaskCtx.putImageData(img,0,0);
+    ectx.drawImage(previewMaskCanvas,0,0);
+
+    // Subtle contour
+    ectx.save();
+    ectx.globalAlpha = 0.65;
+    ectx.strokeStyle = "#7dd3fc";
+    ectx.lineWidth = 1;
+    ectx.setLineDash([6,5]);
+    ectx.strokeRect(0.5,0.5,w-1,h-1);
+    ectx.restore();
+  }
+
+  function drawResultOriginal(){
+    if(!hasImage) {
+      rctx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
+      return;
+    }
+    rctx.putImageData(currentBaseImageData,0,0);
+  }
+
+  imageLoader.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      image = new Image();
+      image.onload = () => {
+        let w = image.naturalWidth;
+        let h = image.naturalHeight;
+        const scale = Math.min(1, maxSide / Math.max(w,h));
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+        setCanvasSize(w,h);
+        ectx.clearRect(0,0,w,h);
+        ectx.drawImage(image,0,0,w,h);
+        originalImageData = ectx.getImageData(0,0,w,h);
+        currentBaseImageData = new ImageData(new Uint8ClampedArray(originalImageData.data), w, h);
+        maskCtx.clearRect(0,0,w,h);
+        hasImage = true;
+        drawEditView();
+        drawResultOriginal();
+        downloadBtn.disabled = false;
+        leftInfo.textContent = `${w} × ${h}px`;
+        rightInfo.textContent = "imagen cargada";
+        setStatus("Imagen cargada. Pinta sobre la ropa y aplica una materialidad.");
+      };
+      image.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function getCanvasPoint(evt){
+    const rect = editCanvas.getBoundingClientRect();
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    return {
+      x: (clientX - rect.left) * (editCanvas.width / rect.width),
+      y: (clientY - rect.top) * (editCanvas.height / rect.height)
+    };
+  }
+
+  function drawMaskPoint(point, previous=null){
+    if(!hasImage) return;
+    const size = Number(brushSize.value);
+    maskCtx.save();
+    maskCtx.lineCap = "round";
+    maskCtx.lineJoin = "round";
+    maskCtx.lineWidth = size;
+    if(mode === "erase"){
+      maskCtx.globalCompositeOperation = "destination-out";
+      maskCtx.strokeStyle = "rgba(0,0,0,1)";
+      maskCtx.fillStyle = "rgba(0,0,0,1)";
+    }else{
+      maskCtx.globalCompositeOperation = "source-over";
+      maskCtx.strokeStyle = "rgba(255,255,255,1)";
+      maskCtx.fillStyle = "rgba(255,255,255,1)";
+    }
+
+    if(previous){
+      maskCtx.beginPath();
+      maskCtx.moveTo(previous.x, previous.y);
+      maskCtx.lineTo(point.x, point.y);
+      maskCtx.stroke();
+    } else {
+      maskCtx.beginPath();
+      maskCtx.arc(point.x, point.y, size/2, 0, Math.PI*2);
+      maskCtx.fill();
+    }
+    maskCtx.restore();
+    drawEditView();
+  }
+
+  editCanvas.addEventListener("mousedown", (evt)=>{
+    isDrawing = true;
+    lastPoint = getCanvasPoint(evt);
+    drawMaskPoint(lastPoint);
+  });
+  window.addEventListener("mousemove", (evt)=>{
+    if(!isDrawing) return;
+    const p = getCanvasPoint(evt);
+    drawMaskPoint(p,lastPoint);
+    lastPoint = p;
+  });
+  window.addEventListener("mouseup", ()=>{ isDrawing = false; lastPoint = null; });
+
+  editCanvas.addEventListener("touchstart", (evt)=>{
+    evt.preventDefault();
+    isDrawing = true;
+    lastPoint = getCanvasPoint(evt);
+    drawMaskPoint(lastPoint);
+  }, {passive:false});
+  window.addEventListener("touchmove", (evt)=>{
+    if(!isDrawing) return;
+    evt.preventDefault();
+    const p = getCanvasPoint(evt);
+    drawMaskPoint(p,lastPoint);
+    lastPoint = p;
+  }, {passive:false});
+  window.addEventListener("touchend", ()=>{ isDrawing = false; lastPoint = null; });
+
+  function updateLabels(){
+    brushValue.textContent = `${brushSize.value} px`;
+    intensityValue.textContent = `${intensity.value}%`;
+    scaleValue.textContent = textureScale.value;
+    shadowValue.textContent = `${shadowKeep.value}%`;
+    colorText.textContent = baseColor.value;
+  }
+  [brushSize,intensity,textureScale,shadowKeep,baseColor].forEach(el => el.addEventListener("input", updateLabels));
+  updateLabels();
+
+  function setMode(newMode){
+    mode = newMode;
+    paintMode.classList.toggle("active", mode === "paint");
+    eraseMode.classList.toggle("active", mode === "erase");
+    setStatus(mode === "paint" ? "Modo pintar activo." : "Modo borrar activo.");
+  }
+  paintMode.addEventListener("click",()=>setMode("paint"));
+  eraseMode.addEventListener("click",()=>setMode("erase"));
+
+  clearMask.addEventListener("click", ()=>{
+    if(!hasImage) return;
+    maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+    drawEditView();
+    setStatus("Selección limpiada.");
+  });
+
+  selectAll.addEventListener("click", ()=>{
+    if(!hasImage) return;
+    maskCtx.save();
+    maskCtx.globalCompositeOperation = "source-over";
+    maskCtx.fillStyle = "rgba(255,255,255,1)";
+    maskCtx.fillRect(0,0,maskCanvas.width,maskCanvas.height);
+    maskCtx.restore();
+    drawEditView();
+    setStatus("Toda la imagen fue seleccionada. Úsalo solo si la prenda ocupa casi toda la foto.");
+  });
+
+  document.querySelectorAll(".swatch").forEach(s => {
+    s.addEventListener("click", () => {
+      baseColor.value = s.dataset.color;
+      updateLabels();
+      setStatus(`Color base cambiado a ${baseColor.value}.`);
+    });
+  });
+
+  material.addEventListener("change", () => {
+    const defaults = {
+      wood:"#9b6a3a",
+      plastic:"#111827",
+      mesh:"#111827",
+      paper:"#d8d2c4",
+      metal:"#b8c1cc",
+      leather:"#4b2f24",
+      fabric:"#2563eb"
+    };
+    baseColor.value = defaults[material.value] || baseColor.value;
+    updateLabels();
+  });
+
+  function materialColor(kind, x, y, base, scale, lum){
+    const s = Math.max(4, scale);
+    let r = base.r, g = base.g, b = base.b;
+    let alpha = 1;
+
+    if(kind === "wood"){
+      const grain = Math.sin((x/s)*7 + smoothNoise(x/s, y/s, 2)*7 + y/(s*2)) * 0.5 + 0.5;
+      const streak = smoothNoise(x/(s*2), y/(s/3), 4);
+      const v = 0.72 + grain*0.34 + streak*0.18;
+      r = base.r * v + 28*grain;
+      g = base.g * (0.86 + streak*.22);
+      b = base.b * (0.75 + grain*.12);
+    }
+    else if(kind === "plastic"){
+      const gloss = Math.max(0, Math.sin((x+y)/(s*1.25)))*0.22 + smoothNoise(x/s,y/s,5)*0.08;
+      const v = 0.9 + gloss + lum*0.12;
+      r = base.r * v + 38*gloss;
+      g = base.g * v + 38*gloss;
+      b = base.b * v + 42*gloss;
+    }
+    else if(kind === "mesh"){
+      const line1 = Math.abs(((x + y) % s) - s/2) < Math.max(1.5, s*0.055);
+      const line2 = Math.abs(((x - y + 5000) % s) - s/2) < Math.max(1.5, s*0.055);
+      const dot = smoothNoise(x/(s*.7), y/(s*.7), 9);
+      if(line1 || line2){
+        const v = 0.55 + dot*0.28;
+        r = base.r*v; g = base.g*v; b = base.b*v;
+        alpha = 0.92;
+      }else{
+        // open holes keep much of original through lower material alpha
+        r = base.r*1.15; g = base.g*1.15; b = base.b*1.15;
+        alpha = 0.18;
+      }
+    }
+    else if(kind === "paper"){
+      const grain = smoothNoise(x/(s*.5), y/(s*.5), 12)*0.18 + smoothNoise(x/(s*2), y/(s*2), 13)*0.10;
+      const fibers = (Math.sin(y/(s*.42)) + Math.sin(x/(s*.9))) * 0.025;
+      const v = 0.9 + grain + fibers;
+      r = base.r*v + 8;
+      g = base.g*v + 8;
+      b = base.b*v + 6;
+    }
+    else if(kind === "metal"){
+      const band = Math.sin((x+y*.35)/(s*.45))*0.18;
+      const speck = smoothNoise(x/(s*.35), y/(s*.35), 16)*0.16;
+      const v = 0.86 + band + speck + lum*.22;
+      r = base.r*v; g = base.g*v; b = base.b*v + 8;
+    }
+    else if(kind === "leather"){
+      const pore = smoothNoise(x/(s*.28), y/(s*.28), 21);
+      const wrinkle = Math.sin(x/(s*.75) + smoothNoise(x/s,y/s,22)*3) * 0.06;
+      const v = 0.78 + pore*0.28 + wrinkle;
+      r = base.r*v + 12*pore;
+      g = base.g*v + 5*pore;
+      b = base.b*v;
+    }
+    else if(kind === "fabric"){
+      const weaveX = Math.sin(x/(s*.12))*0.08;
+      const weaveY = Math.sin(y/(s*.12))*0.08;
+      const n = smoothNoise(x/(s*.5), y/(s*.5), 30)*0.12;
+      const v = 0.82 + weaveX + weaveY + n;
+      r = base.r*v; g = base.g*v; b = base.b*v;
+    }
+
+    return {r:clamp(r), g:clamp(g), b:clamp(b), a:alpha};
+  }
+
+  function maskHasPixels(){
+    const md = maskCtx.getImageData(0,0,maskCanvas.width,maskCanvas.height).data;
+    for(let i=3;i<md.length;i+=4){
+      if(md[i] > 10) return true;
+    }
+    return false;
+  }
+
+  function applyMaterial(){
+    if(!hasImage){
+      setStatus("Primero carga una imagen.");
+      return;
+    }
+    if(!maskHasPixels()){
+      setStatus("Pinta primero la zona de ropa que quieres modificar.");
+      return;
+    }
+
+    const w = resultCanvas.width, h = resultCanvas.height;
+    const src = currentBaseImageData;
+    const out = new ImageData(new Uint8ClampedArray(src.data), w, h);
+    const mask = maskCtx.getImageData(0,0,w,h).data;
+    const base = hexToRgb(baseColor.value);
+    const kind = material.value;
+    const matStrength = Number(intensity.value)/100;
+    const shadow = Number(shadowKeep.value)/100;
+    const scale = Number(textureScale.value);
+
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const i = (y*w + x)*4;
+        const m = mask[i+3] / 255;
+        if(m <= 0.01) continue;
+
+        const sr = src.data[i], sg = src.data[i+1], sb = src.data[i+2];
+        const lum = luminance(sr,sg,sb);
+        const mat = materialColor(kind, x, y, base, scale, lum);
+        const shade = (1 - shadow) + shadow * (0.48 + lum*1.08);
+        let mr = mat.r * shade;
+        let mg = mat.g * shade;
+        let mb = mat.b * shade;
+
+        const localStrength = matStrength * m * mat.a;
+        out.data[i]   = clamp(lerp(sr, mr, localStrength));
+        out.data[i+1] = clamp(lerp(sg, mg, localStrength));
+        out.data[i+2] = clamp(lerp(sb, mb, localStrength));
+        out.data[i+3] = src.data[i+3];
+      }
+    }
+
+    rctx.putImageData(out,0,0);
+    rightInfo.textContent = `${material.options[material.selectedIndex].text}`;
+    downloadBtn.disabled = false;
+    setStatus("Materialidad aplicada. Puedes descargar el resultado o copiarlo para seguir editando.");
+  }
+
+  applyBtn.addEventListener("click", applyMaterial);
+
+  downloadBtn.addEventListener("click", ()=>{
+    if(!hasImage) return;
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+    link.download = `imagen_materialidad_${date}.png`;
+    link.href = resultCanvas.toDataURL("image/png");
+    link.click();
+    setStatus("Imagen descargada en formato PNG.");
+  });
+
+  resetBtn.addEventListener("click", ()=>{
+    if(!hasImage) return;
+    currentBaseImageData = new ImageData(new Uint8ClampedArray(originalImageData.data), editCanvas.width, editCanvas.height);
+    maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+    drawEditView();
+    drawResultOriginal();
+    rightInfo.textContent = "reiniciado";
+    setStatus("Imagen reiniciada al original.");
+  });
+
+  copyResult.addEventListener("click", ()=>{
+    if(!hasImage) return;
+    currentBaseImageData = rctx.getImageData(0,0,resultCanvas.width,resultCanvas.height);
+    maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+    drawEditView();
+    setStatus("Resultado copiado a la ventana de edición. Puedes pintar otra zona y aplicar otra materialidad.");
+  });
+
+  // Placeholder canvas
+  function drawPlaceholder(){
+    editCanvas.width = resultCanvas.width = 900;
+    editCanvas.height = resultCanvas.height = 620;
+    maskCanvas.width = previewMaskCanvas.width = 900;
+    maskCanvas.height = previewMaskCanvas.height = 620;
+    for(const ctx of [ectx,rctx]){
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0,0,900,620);
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10,8]);
+      ctx.strokeRect(40,40,820,540);
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "bold 30px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(ctx === ectx ? "Carga una imagen" : "Aquí aparecerá el resultado", 450, 295);
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "18px system-ui";
+      ctx.fillText(ctx === ectx ? "Luego pinta la ropa que quieres modificar" : "Aplica madera, plástico, malla, papel y más", 450, 330);
+    }
+  }
+  drawPlaceholder();
+})();
+</script>
+</body>
+</html>
